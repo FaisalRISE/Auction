@@ -384,7 +384,7 @@ async function adm(action,p,quiet){
     else{ out=data; if(!quiet||!data.ok) toast(data.msg||"Done",data.ok?"ok":"err"); }
   }catch(e){toast("Network problem — try again","err");}
   if(!quiet)BUSY=false;
-  await fetchAll(); render(true);
+  await fetchAll(); render(!quiet);
   return out;
 }
 async function login(role,code){
@@ -395,22 +395,32 @@ async function login(role,code){
   ME={role:role==="admin"?"admin":"team",team:role==="admin"?null:role,code};
   saveSession(ME); TAB="live"; render(true);
 }
-function logout(){ ME=null; saveSession(null); CODES=null; LOGIN_ADMIN=false; render(true); }
+function logout(){ for(const k in DIRTY)delete DIRTY[k]; ME=null; saveSession(null); CODES=null; LOGIN_ADMIN=false; render(true); }
 
 /* ═══════════════ RENDER ═══════════════ */
 function render(force){
   const ae=document.activeElement;
-  if(!force&&ae&&ae.closest&&ae.closest("#app")&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)){PENDING=true;return;}
+  if(!force&&(PTR_DOWN||(ae&&ae.closest&&ae.closest("#app")&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))){PENDING=true;return;}
   PENDING=false;
   const app=$("#app");
   if(!D.cfg){app.innerHTML=`<div class="wait" style="padding-top:120px"><div class="big-ic">🏆</div>${NET_OK?"Connecting…":"Can't reach the server — check your internet. Retrying…"}</div>`;return;}
   if(IS_PRES){app.innerHTML=viewPresenter();tick();return;}
-  if(!ME){app.innerHTML=header()+viewLogin();return;}
+  if(!ME){app.innerHTML=header()+viewLogin();restoreDirty();return;}
   if(ME.role==="team"&&!T(ME.team)){logout();return;}
   app.innerHTML=header()+(ME.role==="admin"?viewAdmin():viewCaptain());
+  restoreDirty();
   tick();
 }
-document.addEventListener("focusout",()=>setTimeout(()=>{if(PENDING)render();},60));
+/* Never rebuild the screen while a button is being pressed, or the tap is lost. */
+let PTR_DOWN=false;
+document.addEventListener("pointerdown",()=>{PTR_DOWN=true;},true);
+document.addEventListener("pointerup",()=>{PTR_DOWN=false;setTimeout(()=>{if(PENDING)render();},350);},true);
+document.addEventListener("pointercancel",()=>{PTR_DOWN=false;},true);
+document.addEventListener("focusout",()=>setTimeout(()=>{if(PENDING&&!PTR_DOWN)render();},350));
+/* Keep whatever was typed if the screen is rebuilt underneath it. */
+const DIRTY={};
+document.addEventListener("input",e=>{const t=e.target;if(t&&t.id&&t.closest&&t.closest("#app")&&t.type!=="checkbox")DIRTY[t.id]=t.value;});
+function restoreDirty(){ for(const id in DIRTY){ const el=document.getElementById(id); if(el&&el.value!==DIRTY[id])el.value=DIRTY[id]; } }
 
 function header(){
   let who="";
@@ -600,7 +610,7 @@ function adminPlayers(){
     <div class="dim" style="font-size:13px;margin-top:8px">Assign/Release are manual overrides (no budget checks) — use them to fix mistakes.</div>`;
 }
 function adminTeams(){
-  if(CODES===null){ CODES={}; adm("codes",{},true).then(r=>{CODES=(r&&r.ok&&r.codes)||{};render(true);}); }
+  if(CODES===null){ CODES={}; adm("codes",{},true).then(r=>{CODES=(r&&r.ok&&r.codes)||{};render();}); }
   const colors=["#e8c050","#34d399","#60a5fa","#f472b6","#c084fc","#fb923c","#2dd4bf","#fb7185"];
   const avail=D.players.filter(p=>p.status==="pool"||p.status==="unsold");
   const cards=D.teams.map(t=>{const c=capOf(t);return `<div class="card" style="padding:14px">
@@ -762,11 +772,11 @@ document.addEventListener("click",e=>{
     case "admRaise": bid("raise",d.t); break;
     case "admMatch": bid("match",d.t); break;
     case "release": confirmBox(`Release <b>${esc(P(d.p).name)}</b> back to the pool? Their price is refunded to the team.`,()=>adm("release",{player_id:d.p})); break;
-    case "assign": adm("assign",{player_id:d.p,team:$("#as_t_"+d.p).value,price:num($("#as_p_"+d.p).value)}); break;
+    case "assign": delete DIRTY["as_p_"+d.p]; adm("assign",{player_id:d.p,team:$("#as_t_"+d.p).value,price:num($("#as_p_"+d.p).value)}); break;
     case "rename": promptBox("Rename player","Name",P(d.p).name,v=>{if(v)adm("rename_player",{player_id:d.p,name:v});}); break;
     case "removeP": confirmBox(`Remove <b>${esc(P(d.p).name)}</b> from the auction?`,()=>adm("remove_player",{player_id:d.p})); break;
     case "addPlayer": { const v=($("#newName")||{}).value; if(!v||!v.trim()){toast("Type a name","err");break;} adm("add_player",{name:v.trim()}); break; }
-    case "saveTeam": adm("set_team",{team:d.t,name:$("#tn_"+d.t).value}); break;
+    case "saveTeam": saveTeamName(d.t); break;
     case "teamColor": adm("set_team",{team:d.t,color:d.c}); break;
     case "setCap": { const v=$("#cap_"+d.t).value; if(!v){toast("Pick the new captain","err");break;} confirmBox(`Make <b>${esc(P(v).name)}</b> captain of ${tname(d.t)}? The current captain goes back into the pool.`,()=>adm("set_captain",{team:d.t,player_id:v})); break; }
     case "setCode": promptBox("Change passcode","New passcode (min 4 characters)",CODES[d.r]||"",v=>{if(v)adm("set_code",{role:d.r,code:v}).then(()=>{CODES=null;render(true);});}); break;
@@ -783,11 +793,20 @@ document.addEventListener("click",e=>{
     case "fs": try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch(err){} break;
   }
 });
+function saveTeamName(tid){
+  const i=$("#tn_"+tid); const v=(i?i.value:"").trim();
+  if(!v){toast("Team name can't be empty","err");return;}
+  delete DIRTY["tn_"+tid];
+  if(T(tid)&&T(tid).name===v){toast("Team saved","ok");return;}
+  adm("set_team",{team:tid,name:v});
+}
 document.addEventListener("change",e=>{
   const el=e.target; if(el.dataset&&el.dataset.act==="fee") adm("set_fee",{player_id:el.dataset.p,paid:el.checked},true);
+  if(el.id&&el.id.startsWith("tn_")) saveTeamName(el.id.slice(3));
 });
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&e.target.id==="lgCode"){const b=document.querySelector('[data-act="doLogin"]');if(b)b.click();}
+  if(e.key==="Enter"&&e.target.id&&e.target.id.startsWith("tn_")){e.target.blur();}
   if(e.key==="Enter"&&e.target.id==="newName"){const b=document.querySelector('[data-act="addPlayer"]');if(b)b.click();}
 });
 
