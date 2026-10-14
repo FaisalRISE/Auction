@@ -245,6 +245,7 @@ html[data-theme="dark"] img.inv{filter:invert(1) brightness(1.9)}
 .orgRow.host{border-color:#c8a03066}
 .orgPos{width:22px;font-weight:800;color:var(--dim);padding-top:16px;text-align:center;flex:none;font-size:12px}
 .orgLogo{width:100px;height:58px;flex:none;border:1px dashed var(--line2);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--card);padding:5px;margin:0;text-transform:none;letter-spacing:0}
+button.orgLogo{font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
 .orgLogo img{max-width:100%;max-height:100%;object-fit:contain;display:block}
 .orgLogo.empty span{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--dim);text-align:center}
 .orgMid{flex:1;min-width:0}
@@ -267,6 +268,43 @@ html[data-theme="dark"] img.inv{filter:invert(1) brightness(1.9)}
 .plrow .ins label{margin:0;font-size:10px}
 .plrow .ins input{padding:7px 9px;font-size:16px}
 .plrow .ins .f{display:flex;flex-direction:column;gap:3px}
+.plrow.insq{border-color:#2dd4bf88;background:#2dd4bf12}
+.plrow .ins .sqf{justify-content:flex-end}
+.sqbtn{white-space:nowrap}
+.sqfull{font-size:12px}
+.sq.plan{background:#2dd4bf14;border:1px solid #2dd4bf55}
+.sq.plan.lost{background:transparent;border-color:var(--line2);color:var(--dim)}
+.sq .r{display:flex;align-items:center;gap:8px;flex:none}
+.sq .pr2{font-weight:800;color:#2dd4bf;font-size:14px;white-space:nowrap}
+.ptag{display:inline-block;font-size:11px;font-weight:900;color:#2dd4bf;background:#2dd4bf22;border-radius:6px;padding:2px 6px;margin-right:7px;vertical-align:1px}
+.sqx{width:34px;height:34px;flex:none;border-radius:9px;border:1px solid var(--line2);background:var(--card);color:var(--red);font-size:16px;font-weight:900;line-height:1;padding:0}
+.combo{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--surface)}
+.combo.cur{border-color:var(--gold)}
+.combo .ct{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.combo .ct .cc{margin-left:auto;font-weight:800}
+.combo .cpls{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0 4px}
+.cpl{font-size:13px;font-weight:700;padding:3px 9px;border-radius:14px;background:var(--tint2)}
+.cpl.g{text-decoration:line-through;opacity:.55}
+.cpl.m{color:var(--green)}
+.combo .cnote{font-size:12px}
+.combo .cb{display:flex;gap:6px;margin-top:8px}
+.sqdock{display:none}
+@media(max-width:860px){.sqdock{display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:5;margin-top:10px;padding:9px 10px 9px 13px;border-radius:12px;background:var(--card2);border:1px solid #2dd4bf77;box-shadow:0 6px 20px rgba(0,0,0,.35);font-size:14px}}
+#planSquad{scroll-margin-top:130px}
+.slbar{margin:12px 0 0;padding:10px 13px;border-radius:12px;background:#c8a03014;border:1px solid #c8a03055;font-size:14px}
+.slbar.none{color:var(--dim);background:var(--surface);border-color:var(--line)}
+.slbar summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:2px}
+.slbar summary::-webkit-details-marker{display:none}
+.slbar summary .big1{font-weight:700;font-size:15px}
+.slbar summary .big1::after{content:" ▾";color:var(--dim);font-size:12px}
+.slbar[open] summary .big1::after{content:" ▴"}
+.slbar summary .sub{font-size:12px;color:var(--dim)}
+.slrow{display:flex;align-items:center;gap:8px;padding:6px 2px;border-top:1px solid var(--line);font-size:14px}
+.slrow:first-of-type{margin-top:8px}
+.slrow .pr{width:30px;color:var(--gold);font-weight:800;flex:none}
+.slrow .n{flex:1;font-weight:700}
+.slrow .m{color:var(--dim);font-size:13px;white-space:nowrap}
+.lnk{background:none;border:none;color:var(--gold);font-weight:800;padding:0;font-size:inherit;text-decoration:underline}
 .tgtbar{margin-top:12px;padding:10px 13px;border-radius:12px;background:#c8a0301c;border:1px solid #c8a03066;font-weight:700;font-size:15px;line-height:1.45}
 .chk{padding:10px 12px;border-radius:11px;font-size:14px;line-height:1.5;margin-top:8px}
 .chk.ok{background:#34d39914;border:1px solid #34d39944;color:var(--green)}
@@ -324,7 +362,7 @@ let SEEN_SEQ=null, SEQ_AT=Date.now(), LAST_RES_AT=undefined, LAST_PLAYER=null;
 let BUSY=false, PENDING=false, SOUND=false, GOING_SAID=0, SHOW_CODE=false;
 let BRAND=null, BRAND_VER=-1, BRAND_OK=null, BRAND_SAVE_T=null, BRAND_PENDING=false, OTAB="brand";   // branding (logos, contacts)
 const IMGC={};   // loaded logo images for the team pictures
-let CTAB="live", PLAN={targets:{}}, PLAN_TEAM=null, PLAN_SERVER=true, PLAN_STATUS="", PLAN_SAVE_T=null, PLAN_FILTER="all";  // captain's private plan
+let CTAB="live", PLAN={targets:{},squad:[],combos:[]}, SL_OPEN=false, MAX_COMBOS=8, PLAN_TEAM=null, PLAN_SERVER=true, PLAN_STATUS="", PLAN_SAVE_T=null, PLAN_FILTER="all";  // captain's private plan
 let FEED=[], FEED_KEY=null, PAUSE_R=0, WAS_PAUSED=false;   // bid history for the player on the block; pause bookkeeping
 let PRES_CH=null, ONLINE={}, LASTSEEN={}, PRES_READY=false;   // who is connected right now
 const Q=new URLSearchParams(location.search);
@@ -612,19 +650,49 @@ function brandChanged(msg){
   },350);
 }
 function readLogo(file){
-  return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onerror=()=>rej(new Error("That file could not be read"));
-    fr.onload=()=>{ const img=new Image(); img.onerror=()=>rej(new Error("That image could not be opened"));
-      img.onload=()=>{ const draw=(mw,mh,type,q)=>{ const s=Math.min(1,mw/img.width,mh/img.height), cv=document.createElement("canvas");
-          cv.width=Math.max(1,Math.round(img.width*s)); cv.height=Math.max(1,Math.round(img.height*s));
+  return new Promise((res,rej)=>{
+    const img=new Image(); let obj=null;
+    const done=()=>{ if(obj){ try{URL.revokeObjectURL(obj);}catch(e){} obj=null; } };
+    img.onerror=()=>{ done(); rej(new Error("That image could not be opened — try a PNG or JPG (a screenshot of the logo works too)")); };
+    img.onload=()=>{
+      try{
+        const draw=(mw,mh,type,q)=>{ const sc=Math.min(1,mw/img.naturalWidth,mh/img.naturalHeight), cv=document.createElement("canvas");
+          cv.width=Math.max(1,Math.round(img.naturalWidth*sc)); cv.height=Math.max(1,Math.round(img.naturalHeight*sc));
           const cx=cv.getContext("2d"); cx.imageSmoothingQuality="high";
           if(type==="image/jpeg"){cx.fillStyle="#fff";cx.fillRect(0,0,cv.width,cv.height);}
           cx.drawImage(img,0,0,cv.width,cv.height); return cv.toDataURL(type,q); };
         let url=draw(440,180,"image/png"); if(url.length>LOGO_BUDGET)url=draw(300,120,"image/png");
         if(url.length>LOGO_BUDGET)url=draw(440,180,"image/jpeg",.86);
+        if(url.length>LOGO_BUDGET)url=draw(300,120,"image/jpeg",.8);
+        done();
         if(url.length>LOGO_BUDGET)return rej(new Error("That image is too detailed to store — try a simpler logo"));
-        res(url); };
-      img.src=fr.result; };
-    fr.readAsDataURL(file); });
+        res(url);
+      }catch(e){ done(); rej(new Error("That image could not be prepared — try a PNG or JPG")); }
+    };
+    try{ obj=URL.createObjectURL(file); img.src=obj; }
+    catch(e){ const fr=new FileReader(); fr.onerror=()=>rej(new Error("That file could not be read")); fr.onload=()=>{img.src=fr.result;}; fr.readAsDataURL(file); }
+  });
+}
+/* The file picker sits outside the screen that gets redrawn every few seconds,
+   so a refresh while you're choosing a photo can't lose your pick. */
+let PICK_FOR=null;
+const LOGO_PICK=(()=>{ const i=document.createElement("input"); i.type="file"; i.accept="image/*"; i.id="logoPicker"; i.tabIndex=-1;
+  i.setAttribute("aria-hidden","true"); i.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0";
+  i.addEventListener("change",()=>{ const f=i.files&&i.files[0], t=PICK_FOR; PICK_FOR=null; if(f&&t)addLogo(f,t.k,t.id); i.value=""; });
+  (document.body||document.documentElement).appendChild(i); return i; })();
+function pickLogo(k,id){ if(!canBrand())return; PICK_FOR={k,id}; try{LOGO_PICK.value="";}catch(e){} LOGO_PICK.click(); }
+function addLogo(f,k,id){
+  if(!canBrand())return;
+  if(f.type&&!/^image\//.test(f.type)){toast("That is not an image file","err");return;}
+  if(f.size>30e6){toast("That file is too big — pick an image under 30 MB","err");return;}
+  toast("Adding logo…","ok");
+  readLogo(f).then(url=>{
+    let o=findBrand(k,id);
+    if(!o&&k!=="host"){ const list=brandList(k), max=k==="organisers"?MAX_ORGS:MAX_SPONS;
+      if(list.length>=max){toast("No room for another logo","err");return;}
+      o={id,name:"",logo:"",invert:false}; list.push(o); }
+    if(!o)return; o.logo=url; o.invert=false; brandChanged("Logo added ✓");
+  }).catch(err=>toast(String(err&&err.message||err),"err"));
 }
 const brandList=k=>k==="organisers"?BRAND.organisers:BRAND.sponsors;
 function findBrand(k,id){ return k==="host"?BRAND.host:brandList(k).find(o=>o.id===id)||null; }
@@ -647,8 +715,7 @@ function brandEditor(){
   const warn=BRAND_OK===false?`<div class="chk bad" style="margin-bottom:12px">⚠ Branding can't be saved yet — run <b>auction-fix-5.sql</b> in Supabase (Explorer → Run SQL). You can look around, but changes won't stick.</div>`:"";
   const row=(o,k,i,n)=>{ const host=k==="host", oo=host?hostB():o, src=logoSrc(oo), inv=logoInv(oo);
     return `<div class="orgRow ${host?"host":""}"><div class="orgPos">${host?"★":i+1}</div>
-      <label class="orgLogo ${src?"":"empty"}" title="Choose a logo image">${src?`<img class="${inv?"inv":""}" src="${src}" alt="">`:"<span>Add logo</span>"}
-        <input type="file" accept="image/*" data-act="logoFile" data-k="${k}" data-id="${o.id}" style="display:none"></label>
+      <button type="button" class="orgLogo ${src?"":"empty"}" data-act="pickLogo" data-k="${k}" data-id="${o.id}" title="Choose a logo image">${src?`<img class="${inv?"inv":""}" src="${src}" alt="">`:"<span>Add logo</span>"}</button>
       <div class="orgMid"><input id="bn_${k}_${o.id}" value="${esc(o.name)}" placeholder="${host?"Host name":k==="organisers"?"Organiser name":"Sponsor name"}" maxlength="60"/>
         ${host?`<input id="hp_phone" style="margin-top:6px" value="${esc(o.phone||"")}" inputmode="tel" placeholder="Host number"/>`:""}
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
@@ -688,7 +755,8 @@ function viewOrg(){
 /* ═══════════════ CAPTAIN PLAN (private per team, saved behind the team passcode) ═══════════════ */
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
-function normPlan(p){ p=(p&&typeof p==="object")?p:{}; if(!p.targets||typeof p.targets!=="object")p.targets={}; return p; }
+function normPlan(p){ p=(p&&typeof p==="object")?p:{}; if(!p.targets||typeof p.targets!=="object")p.targets={};
+  if(!Array.isArray(p.squad))p.squad=[]; if(!Array.isArray(p.combos))p.combos=[]; return p; }
 async function loadPlan(){
   if(!ME||ME.role!=="team")return;
   if(PLAN_STATUS==="saving")return;               // don't clobber edits that are about to save
@@ -720,6 +788,50 @@ function myTargets(){
     .sort((a,b)=>(a.t.prio||99)-(b.t.prio||99)||a.p.name.localeCompare(b.p.name));
 }
 const available=p=>p.status==="pool"||p.status==="unsold";
+const onBlock=pid=>lotOpen()&&D.lot&&D.lot.player_id===pid;
+const planPrice=(pid,mx)=>Math.max(D.cfg.base,num(mx!==undefined?mx:(PLAN.targets[pid]||{}).max)||D.cfg.base);
+const inSquad=pid=>PLAN.squad.includes(pid);
+function nextPrio(pid){ const used=myTargets().filter(x=>x.p.id!==pid).map(x=>num(x.t.prio)); return String((used.length?Math.max(...used):0)+1); }
+/* planned players: live = still to be bought, gone = bought by another team (players you bought show as bought) */
+function planSquad(tid){
+  const live=[],gone=[];
+  PLAN.squad.forEach(pid=>{ const p=P(pid); if(!p||p.status==="captain")return;
+    if(p.status==="sold"){ if(p.team_id!==tid)gone.push(p); return; } live.push(p); });
+  return {live,gone};
+}
+/* shortlisted players who haven't come up yet (pool), or came up unsold and may come back */
+const stillToCome=()=>myTargets().filter(x=>available(x.p)&&!onBlock(x.p.id));
+function comboState(c,tid){
+  const live=[],gone=[],mine=[];
+  c.pids.forEach(pid=>{ const p=P(pid); if(!p)return; if(p.status==="sold")(p.team_id===tid?mine:gone).push(p); else if(p.status!=="captain")live.push(p); });
+  const cost=live.reduce((a,p)=>a+planPrice(p.id,(c.maxes||{})[p.id]),0);
+  return {live,gone,mine,cost};
+}
+function sameSet(a,b){ return a.length===b.length&&a.slice().sort().join(",")===b.slice().sort().join(","); }
+function saveCombo(){
+  const tid=ME.team, s=planSums(tid);
+  if(!s.live.length){toast("Add players to your plan squad first","err");return;}
+  const ids=s.live.map(p=>p.id), dup=PLAN.combos.find(c=>sameSet(c.pids,ids));
+  if(!dup&&PLAN.combos.length>=MAX_COMBOS){toast(`You can keep ${MAX_COMBOS} combinations — delete one first`,"err");return;}
+  const def=dup?dup.name:"Plan "+String.fromCharCode(65+Math.min(25,PLAN.combos.length));
+  promptBox(dup?"Update this combination":"Save this combination","Give it a name",def,v=>{
+    const c=dup||{id:"c"+Date.now().toString(36)};
+    c.name=(v||def).slice(0,30); c.pids=ids; c.maxes={}; ids.forEach(pid=>{c.maxes[pid]=num((PLAN.targets[pid]||{}).max)||0;}); c.at=Date.now();
+    if(!dup)PLAN.combos.push(c);
+    savePlanSoon(); toast(`Saved “${c.name}”`,"ok"); render(true);
+  });
+}
+function loadCombo(cid){
+  const c=PLAN.combos.find(x=>x.id===cid); if(!c)return;
+  const tid=ME.team, o=openSlots(tid), keep=[], skip=[];
+  c.pids.forEach(pid=>{ const p=P(pid); if(!p||p.status==="captain")return;
+    if(p.status==="sold"){ if(p.team_id!==tid)skip.push(p.name+" (sold)"); return; }
+    if(keep.length<o)keep.push(pid); else skip.push(p.name+" (no slot)"); });
+  keep.forEach(pid=>{ const t=PLAN.targets[pid]||(PLAN.targets[pid]={}); if(!t.fav){t.fav=true; if(!t.prio)t.prio=nextPrio(pid);}
+    if(c.maxes&&num(c.maxes[pid]))t.max=num(c.maxes[pid]); delete DIRTY["pl_max_"+pid]; });
+  PLAN.squad=keep; savePlanSoon();
+  toast(`Loaded “${c.name}”`+(skip.length?` — left out ${skip.join(", ")}`:""),skip.length?"err":"ok"); render(true);
+}
 async function loadLogs(){
   const r=await sb.from("auc_log").select("*").order("id",{ascending:false}).limit(300);
   if(!r.error){LOGS=r.data;if(TAB==="log")render();}
@@ -758,7 +870,7 @@ async function login(role,code){
   ME=role==="admin"?{role:"admin",team:null,code}:role==="organiser"?{role:"org",team:null,code}:{role:"team",team:role,code};
   saveSession(ME); TAB="live"; CTAB="live"; render(true); trackMe(); loadPlan();
 }
-function logout(){ for(const k in DIRTY)delete DIRTY[k]; PLAN={targets:{}}; PLAN_TEAM=null; PLAN_STATUS=""; CTAB="live"; ME=null; saveSession(null); CODES=null; LOGIN_ADMIN=false; LOGIN_ORG=false; OTAB="brand"; render(true); trackMe(); }
+function logout(){ for(const k in DIRTY)delete DIRTY[k]; PLAN=normPlan({}); PLAN_TEAM=null; PLAN_STATUS=""; CTAB="live"; ME=null; saveSession(null); CODES=null; LOGIN_ADMIN=false; LOGIN_ORG=false; OTAB="brand"; render(true); trackMe(); }
 
 /* ═══════════════ RENDER ═══════════════ */
 function render(force){
@@ -791,6 +903,7 @@ document.addEventListener("input",e=>{const t=e.target;if(t&&t.id&&t.closest&&t.
     if(m[1]==="note")tg.note=t.value.slice(0,60); else if(m[1]==="max")tg.max=num(t.value); else tg.prio=String(num(t.value)||"");
     savePlanSoon(); render(); }    // render waits until you leave the box
 });
+document.addEventListener("toggle",e=>{ if(e.target&&e.target.id==="slbar")SL_OPEN=e.target.open; },true);
 document.addEventListener("focusout",e=>{ const t=e.target; if(t&&t.id&&t.id.startsWith("pl_max_")){ const n=num(t.value); t.value=n?n.toLocaleString("en-IN"):""; delete DIRTY[t.id]; } });
 function restoreDirty(){ for(const id in DIRTY){ const el=document.getElementById(id); if(el&&el.value!==DIRTY[id])el.value=DIRTY[id]; } }
 
@@ -930,15 +1043,27 @@ function viewCaptain(){
   const tabs=`<div class="ctabs"><button class="${CTAB==="live"?"on":""}" data-act="ctab" data-t="live">🔨 Live auction</button>
     <button class="${CTAB==="plan"?"on":""}" data-act="ctab" data-t="plan">📝 My plan${nT?` ★${nT}`:""}</button></div>`;
   if(CTAB==="plan") return `<div class="wrap">${tabs}${viewPlan(tid)}</div>`;
-  return `<div class="wrap">${tabs}<div class="live">
+  return `<div class="wrap">${tabs}${shortlistBar(tid)}<div class="live">
     <div class="card block">${leftHtml}</div>
     <div>${budgetPanel(tid)}${rulesBox()}</div>
   </div></div>`;
 }
+/* live screen: how many of your shortlist are still to come up */
+function shortlistBar(tid){
+  const all=myTargets();
+  if(!all.length) return `<div class="slbar none">☆ No shortlist yet — <button class="lnk" data-act="ctab" data-t="plan">open My plan</button> to pick targets and build your squad plan.</div>`;
+  const come=stillToCome(), blk=lotOpen()&&tgt(D.lot.player_id), mine=all.filter(x=>x.p.status==="sold"&&x.p.team_id===tid).length,
+    lost=all.filter(x=>x.p.status==="sold"&&x.p.team_id!==tid).length, sqn=come.filter(x=>inSquad(x.p.id)).length;
+  const bits=[blk?"1 on the block now":"", sqn?`${sqn} in your plan squad`:"", mine?`${mine} bought`:"", lost?`${lost} gone to other teams`:""].filter(Boolean);
+  const list=come.map(x=>`<div class="slrow ${inSquad(x.p.id)?"sq1":""}"><span class="pr">${x.t.prio?"#"+esc(x.t.prio):"–"}</span><span class="n">${esc(x.p.name)}${x.p.status==="unsold"?` <span class="chip" style="color:var(--red)">unsold</span>`:""}${inSquad(x.p.id)?` <span class="chip" style="color:var(--teal,#2dd4bf)">📋 plan</span>`:""}</span><span class="m">${num(x.t.max)?"up to "+fmt(num(x.t.max)):""}</span></div>`).join("");
+  return `<details class="slbar" id="slbar" ${SL_OPEN?"open":""}><summary><span class="big1">★ <b>${come.length}</b> of your ${all.length} shortlisted still to come up for bid</span>
+    ${bits.length?`<span class="sub">${bits.join(" · ")}</span>`:""}</summary>
+    ${come.length?list:`<div class="dim" style="font-size:13px;padding:6px 2px">None left in the pool — add backups in My plan.</div>`}</details>`;
+}
 /* banner on the live screen when one of your targets is on the block */
 function targetBanner(tid){
   const l=D.lot,t=tgt(l.player_id); if(!t)return "";
-  let s=`★ Your target${t.prio?" #"+esc(t.prio):""}`;
+  let s=`★ Your target${t.prio?" #"+esc(t.prio):""}${inSquad(l.player_id)?" · 📋 in your plan squad":""}`;
   const mx=num(t.max);
   if(mx){
     s+=` — planned up to <b>${fmt(mx)}</b>`;
@@ -947,16 +1072,16 @@ function targetBanner(tid){
     else s+=`<br><span style="color:var(--green)">${fmt(mx-l.bid)} of room left in your plan</span>`;
   }
   if(t.note) s+=`<div class="dim" style="font-size:13px;font-weight:500;margin-top:3px">📝 ${esc(t.note)}</div>`;
+  { const left=stillToCome().length; s+=`<div class="dim" style="font-size:13px;font-weight:600;margin-top:3px">${left?`${left} more from your shortlist still to come`:"Last one from your shortlist still in the pool"}</div>`; }
   return `<div class="tgtbar">${s}</div>`;
 }
 
 /* ── MY PLAN tab ── */
 function planSums(tid){
-  const o=openSlots(tid), lf=left(tid), base=D.cfg.base;
+  const o=openSlots(tid), lf=left(tid), base=D.cfg.base, sq=planSquad(tid);
+  const sum=sq.live.reduce((a,p)=>a+planPrice(p.id),0), free=o-sq.live.length;
   const avail=myTargets().filter(x=>available(x.p));
-  const top=avail.slice(0,o);
-  const sum=top.reduce((s,x)=>s+Math.max(base,num(x.t.max)||base),0);
-  return {o,lf,base,avail,top,sum};
+  return {o,lf,base,avail,live:sq.live,gone:sq.gone,sum,free,after:lf-sum};
 }
 function viewPlan(tid){
   const s=planSums(tid), mx=maxBid(tid), sold=soldOf(tid).sort((a,b)=>b.price-a.price), cap=capOf(T(tid));
@@ -971,76 +1096,107 @@ function viewPlan(tid){
     const aa=available(a),ab=available(b); if(aa!==ab)return ab-aa;
     return a.name.localeCompare(b.name);});
   const rows=list.map(p=>{
-    const t=PLAN.targets[p.id]||{}, fav=!!t.fav, gone=p.status==="sold";
+    const t=PLAN.targets[p.id]||{}, fav=!!t.fav, gone=p.status==="sold", inS=inSquad(p.id)&&!gone;
     let chip="";
-    if(lotOpen()&&D.lot.player_id===p.id) chip=`<span class="chip" style="color:var(--gold)">🔨 On the block</span>`;
+    if(onBlock(p.id)) chip=`<span class="chip" style="color:var(--gold)">🔨 On the block</span>`;
     else if(gone&&p.team_id===tid) chip=`<span class="chip" style="color:var(--green)">✓ Yours · ${fmt(p.price)}</span>`;
     else if(gone) chip=`<span class="chip">Sold · ${tname(p.team_id)} · ${fmt(p.price)}</span>`;
     else if(p.status==="unsold") chip=`<span class="chip" style="color:var(--red)">unsold</span>`;
-    return `<div class="plrow ${fav?"fav":""} ${gone&&p.team_id!==tid?"gone":""}">
-      <button class="star" data-act="star" data-p="${p.id}" title="${fav?"Remove from targets":"Add to targets"}">${fav?"★":"☆"}</button>
+    let addBtn="";
+    if(fav&&!gone){
+      if(inS) addBtn=`<button class="btn b-green sm sqbtn" data-act="sqAdd" data-p="${p.id}" title="Take him out of your plan squad">✓ In plan squad</button>`;
+      else if(s.free<=0) addBtn=`<button class="btn b-ghost sm sqbtn" data-act="sqAdd" data-p="${p.id}" title="Plan squad is full">＋ Add to plan squad</button><span class="dim sqfull">${s.o?"squad full — ✕ someone first":"squad complete"}</span>`;
+      else addBtn=`<button class="btn b-gold sm sqbtn" data-act="sqAdd" data-p="${p.id}">＋ Add to plan squad</button>`;
+    }
+    return `<div class="plrow ${fav?"fav":""} ${inS?"insq":""} ${gone&&p.team_id!==tid?"gone":""}">
+      <button class="star" data-act="star" data-p="${p.id}" title="${fav?"Remove from shortlist":"Add to shortlist"}">${fav?"★":"☆"}</button>
       <span class="nm">${esc(p.name)}</span>${chip}
       ${fav?`<div class="ins">
         <div class="f" style="width:64px"><label>Priority</label><input id="pl_prio_${p.id}" inputmode="numeric" value="${esc(t.prio||"")}" placeholder="#"/></div>
         <div class="f" style="width:120px"><label>Max I'll pay ₹</label><input id="pl_max_${p.id}" inputmode="numeric" value="${num(t.max)?num(t.max).toLocaleString("en-IN"):""}" placeholder="${D.cfg.base.toLocaleString("en-IN")}"/></div>
-        <div class="f" style="flex:1;min-width:150px"><label>Note</label><input id="pl_note_${p.id}" maxlength="60" value="${esc(t.note||"")}" placeholder="e.g. strong at net"/></div>
+        ${addBtn?`<div class="f sqf"><label>&nbsp;</label><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${addBtn}</div></div>`:""}
       </div>`:""}
-    </div>`;}).join("")||`<div class="dim" style="padding:14px;text-align:center">${PLAN_FILTER==="targets"?"No targets yet — tap ☆ next to a player to add them.":"No players here."}</div>`;
-  const nT=myTargets().length, nA=all.filter(available).length;
-  // plan check
+    </div>`;}).join("")||`<div class="dim" style="padding:14px;text-align:center">${PLAN_FILTER==="targets"?"No shortlist yet — tap ☆ next to a player to add them.":"No players here."}</div>`;
+  const nT=myTargets().length, nA=all.filter(available).length, nCome=stillToCome().length;
+  // plan checks — based on the plan squad
   let checks="";
   if(s.o===0) checks=`<div class="chk ok">✓ Squad complete.</div>`;
-  else if(!nT) checks=`<div class="chk warn">Tap ☆ on the players you want, then set a priority and the most you'd pay.</div>`;
+  else if(!nT) checks=`<div class="chk warn">Tap ☆ on the players you like to shortlist them, set a priority and the most you'd pay, then <b>＋ Add to plan squad</b>.</div>`;
+  else if(!s.live.length) checks=`<div class="chk warn">Your plan squad is empty — tap <b>＋ Add to plan squad</b> on up to ${s.o} shortlisted player${s.o!==1?"s":""}.</div>`;
   else{
-    if(s.avail.length<s.o) checks+=`<div class="chk warn">You have ${s.avail.length} target${s.avail.length!==1?"s":""} still available for ${s.o} open slot${s.o!==1?"s":""} — add a few backups.</div>`;
-    if(s.sum>s.lf) checks+=`<div class="chk bad">⚠ Your top ${s.top.length} targets add up to <b>${fmt(s.sum)}</b> — that's <b>${fmt(s.sum-s.lf)}</b> more than your purse left (${fmt(s.lf)}).</div>`;
-    const over=s.avail.filter(x=>num(x.t.max)>mx);
-    if(over.length) checks+=`<div class="chk warn">Right now you can bid at most <b>${fmt(mx)}</b> on one player. Over that: ${over.map(x=>esc(x.p.name)+" ("+fmt(num(x.t.max))+")").join(", ")}.</div>`;
-    if(!checks) checks=`<div class="chk ok">✓ Plan fits: your top ${s.top.length} target${s.top.length!==1?"s":""} cost up to <b>${fmt(s.sum)}</b>, leaving <b>${fmt(s.lf-s.sum)}</b>.</div>`;
+    if(s.free<0) checks+=`<div class="chk bad">⚠ ${s.live.length} planned for only ${s.o} open slot${s.o!==1?"s":""} — tap ✕ on ${-s.free}.</div>`;
+    if(s.after<0) checks+=`<div class="chk bad">⚠ Plan costs <b>${fmt(s.sum)}</b> — <b>${fmt(-s.after)}</b> more than your purse left (${fmt(s.lf)}).</div>`;
+    else if(s.free>0&&s.after<s.base*s.free) checks+=`<div class="chk bad">⚠ After this plan only ${fmt(s.after)} is left — not enough to fill your other ${s.free} slot${s.free!==1?"s":""} at base (${fmt(s.base*s.free)}).</div>`;
+    const over=s.live.filter(p=>planPrice(p.id)>mx);
+    if(over.length) checks+=`<div class="chk warn">Right now you can bid at most <b>${fmt(mx)}</b> on one player. Over that: ${over.map(p=>esc(p.name)+" ("+fmt(planPrice(p.id))+")").join(", ")}.</div>`;
+    if(s.gone.length) checks+=`<div class="chk warn">${s.gone.map(p=>esc(p.name)).join(", ")} ${s.gone.length>1?"have":"has"} gone to another team — ✕ to free the slot and pick a backup.</div>`;
+    if(!checks) checks=`<div class="chk ok">✓ Plan fits: ${s.live.length} player${s.live.length!==1?"s":""} for up to <b>${fmt(s.sum)}</b>, leaving <b>${fmt(s.after)}</b>${s.free>0?` for ${s.free} more slot${s.free!==1?"s":""}`:""}.</div>`;
   }
+  const x=pid=>`<button class="sqx" data-act="sqDel" data-p="${pid}" title="Back to shortlist" aria-label="Remove from plan squad">✕</button>`;
   const slots=[`<div class="sq"><span>👑 ${esc(cap?cap.name:"Captain")} <span class="dim" style="font-size:12px">captain</span></span><span class="pr" style="color:var(--dim)">free</span></div>`]
-    .concat(sold.map(p=>`<div class="sq"><span>${esc(p.name)}</span><span class="pr">${fmt(p.price)}</span></div>`))
-    .concat(s.top.map(x=>`<div class="sq open"><span>Open — plan: <b style="color:var(--text)">${esc(x.p.name)}</b></span><span>${fmt(Math.max(s.base,num(x.t.max)||s.base))}</span></div>`))
-    .concat(Array.from({length:Math.max(0,s.o-s.top.length)},()=>`<div class="sq open"><span>Open slot</span><span>base ${fmt(s.base)}</span></div>`)).join("");
-  const even=s.o?Math.floor(s.lf/s.o):0, head=s.o?Math.floor((s.lf-s.base*s.o)/s.o):0;
+    .concat(sold.map(p=>`<div class="sq"><span>✓ ${esc(p.name)} <span class="dim" style="font-size:12px">bought</span></span><span class="pr">${fmt(p.price)}</span></div>`))
+    .concat(s.live.map(p=>{ const t=PLAN.targets[p.id]||{}; return `<div class="sq plan"><span><span class="ptag">${t.prio?"#"+esc(t.prio):"PLAN"}</span>${esc(p.name)}${onBlock(p.id)?` <span class="chip" style="color:var(--gold)">🔨 now</span>`:p.status==="unsold"?` <span class="chip" style="color:var(--red)">unsold</span>`:""}</span><span class="r"><span class="pr2">${num(t.max)?"up to ":"base "}${fmt(planPrice(p.id))}</span>${x(p.id)}</span></div>`; }))
+    .concat(s.gone.map(p=>`<div class="sq plan lost"><span><s>${esc(p.name)}</s> <span class="dim" style="font-size:12px">sold to ${tname(p.team_id)}</span></span><span class="r">${x(p.id)}</span></div>`))
+    .concat(Array.from({length:Math.max(0,s.free)},()=>`<div class="sq open"><span>Open slot <span style="font-size:12px">— ＋ add from your shortlist</span></span><span>base ${fmt(s.base)}</span></div>`)).join("");
+  const curIds=s.live.map(p=>p.id);
+  const combos=PLAN.combos.map(c=>{ const st=comboState(c,tid), cur=curIds.length&&sameSet(c.pids,curIds);
+      const names=c.pids.map(pid=>{const p=P(pid); if(!p)return ""; const g=p.status==="sold"&&p.team_id!==tid, m=p.status==="sold"&&p.team_id===tid;
+        return `<span class="cpl ${g?"g":""} ${m?"m":""}">${m?"✓ ":""}${esc(p.name)}</span>`;}).join("");
+      const fits=st.cost<=s.lf;
+      return `<div class="combo ${cur?"cur":""}"><div class="ct"><b>${esc(c.name)}</b>${cur?`<span class="chip" style="color:var(--gold)">showing now</span>`:""}<span class="cc" style="color:${fits?"var(--text)":"var(--red)"}">${fmt(st.cost)}</span></div>
+        <div class="cpls">${names}</div>
+        <div class="cnote dim">${st.gone.length?`${st.gone.length} gone to other teams · `:""}${st.mine.length?`${st.mine.length} bought · `:""}${st.live.length} still possible${fits?"":" · over your purse"}</div>
+        <div class="cb"><button class="btn b-gold xs" data-act="comboLoad" data-c="${c.id}" ${cur?"disabled":""}>${cur?"Loaded":"Load"}</button>
+          <button class="btn b-ghost xs" data-act="comboImg" data-c="${c.id}">🖼 Share</button>
+          <button class="btn b-ghost xs" data-act="comboDel" data-c="${c.id}" title="Delete">✕</button></div></div>`; }).join("");
   const budget=`<div class="card budget">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-      <div style="font-weight:800">Budget plan</div><span id="planStatus" style="font-size:12px;font-weight:700">${planStatusText()}</span></div>
+      <div style="font-weight:800">My plan squad</div><span id="planStatus" style="font-size:12px;font-weight:700">${planStatusText()}</span></div>
     <div class="kpis" style="margin-top:10px">
       <div class="kpi"><div class="v" style="color:var(--green)">${short(s.lf)}</div><div class="l">Purse left</div></div>
-      <div class="kpi"><div class="v">${s.o}</div><div class="l">Slots left</div></div>
-      <div class="kpi"><div class="v" style="color:var(--gold)">${short(mx)}</div><div class="l">Max on 1 player</div></div>
+      <div class="kpi"><div class="v" style="color:var(--orange)">${short(s.sum)}</div><div class="l">Plan spend</div></div>
+      <div class="kpi"><div class="v" style="color:${s.after<0?"var(--red)":"var(--text)"}">${s.after<0?"−"+short(-s.after):short(s.after)}</div><div class="l">Left after plan</div></div>
     </div>
     <div class="kpis" style="grid-template-columns:1fr 1fr">
-      <div class="kpi"><div class="v" style="font-size:17px">${fmt(even)}</div><div class="l">Even spread / slot</div></div>
-      <div class="kpi"><div class="v" style="font-size:17px;color:${head<0?"var(--red)":"var(--text)"}">${fmt(head)}</div><div class="l">Above base / slot</div></div>
+      <div class="kpi"><div class="v" style="font-size:17px">${s.live.length} / ${s.o}</div><div class="l">Open slots planned</div></div>
+      <div class="kpi"><div class="v" style="font-size:17px;color:var(--gold)">${fmt(mx)}</div><div class="l">Max on 1 player now</div></div>
     </div>
     ${checks}
-    <div class="hd">My squad — with plan</div>${slots}
+    <div class="hd" style="display:flex;justify-content:space-between;align-items:center"><span>Squad — bought + planned</span>${s.live.length?`<button class="btn b-ghost xs" data-act="sqClear">Clear plan</button>`:""}</div>${slots}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn b-gold sm" data-act="comboSave" style="flex:1" ${s.live.length?"":"disabled"}>💾 Save this combination</button>
+      <button class="btn b-ghost sm" data-act="comboImg" data-c="" style="flex:1" ${s.live.length?"":"disabled"}>🖼 Share as image</button></div>
+    <div class="hd">Saved combinations${PLAN.combos.length?` (${PLAN.combos.length})`:""}</div>
+    ${combos||`<div class="dim" style="font-size:13px">Build a squad above and tap <b>Save this combination</b>. Save a few (Plan A, Plan B…) and load whichever still works as players get sold.</div>`}
     <button class="btn b-ghost sm" data-act="printPlan" style="margin-top:12px;width:100%">🖨 Print / Save PDF</button>
   </div>`;
   return `<div class="live">
     <div class="card" style="padding:14px">
-      <div style="font-weight:800;font-size:17px">Shortlist</div>
-      <div class="dim" style="font-size:13px;margin-top:2px">Tap ☆ to mark a target, then set a priority (1 = first choice) and the most you'd pay. Only your team can see this.</div>
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline"><div style="font-weight:800;font-size:17px">Shortlist</div>
+        ${nT?`<span class="chip" style="color:var(--gold)">★ ${nCome} of ${nT} still to come up</span>`:""}</div>
+      <div class="dim" style="font-size:13px;margin-top:2px">Tap ☆ to shortlist a player, set a priority (1 = first choice) and the most you'd pay, then <b>＋ Add to plan squad</b>. Only your team can see this.</div>
       <div class="fchips"><button class="${PLAN_FILTER==="all"?"on":""}" data-act="pfilter" data-f="all">All (${all.length})</button>
-        <button class="${PLAN_FILTER==="targets"?"on":""}" data-act="pfilter" data-f="targets">★ My targets (${nT})</button>
+        <button class="${PLAN_FILTER==="targets"?"on":""}" data-act="pfilter" data-f="targets">★ Shortlist (${nT})</button>
         <button class="${PLAN_FILTER==="avail"?"on":""}" data-act="pfilter" data-f="avail">Still available (${nA})</button></div>
       ${rows}
+      ${nT?`<div class="sqdock"><span>📋 Plan squad <b>${s.live.length}/${s.o}</b> · ${short(s.sum)} · <span style="color:${s.after<0?"var(--red)":"var(--green)"}">${s.after<0?"over by "+short(-s.after):short(s.after)+" left"}</span></span><button class="btn b-gold xs" data-act="toSquad">See squad ↓</button></div>`:""}
     </div>
-    <div>${budget}${rulesBox()}</div>
+    <div id="planSquad">${budget}${rulesBox()}</div>
   </div>`;
 }
 function printPlan(){
   const tid=ME.team,t=T(tid),s=planSums(tid);
-  const rows=myTargets().map(x=>{const p=x.p;const st=p.status==="sold"?(p.team_id===tid?"Yours "+fmt(p.price):"Sold to "+tname(p.team_id)+" "+fmt(p.price)):(p.status==="unsold"?"Unsold":"Available");
-    return `<tr><td>${esc(x.t.prio||"")}</td><td><b>${esc(p.name)}</b></td><td style="text-align:right">${num(x.t.max)?fmt(num(x.t.max)):"—"}</td><td>${esc(x.t.note||"")}</td><td>${st}</td></tr>`;}).join("")||`<tr><td colspan="5">No targets yet</td></tr>`;
-  const squad=[capOf(t)].filter(Boolean).map(c=>`<li>👑 ${esc(c.name)} (captain)</li>`).concat(soldOf(tid).map(p=>`<li>${esc(p.name)} — ${fmt(p.price)}</li>`)).join("");
+  const rows=myTargets().map(x=>{const p=x.p;const st=p.status==="sold"?(p.team_id===tid?"Yours "+fmt(p.price):"Sold to "+tname(p.team_id)+" "+fmt(p.price)):(p.status==="unsold"?"Unsold":"Still to come");
+    return `<tr><td>${esc(x.t.prio||"")}</td><td><b>${esc(p.name)}</b></td><td style="text-align:right">${num(x.t.max)?fmt(num(x.t.max)):"—"}</td><td>${inSquad(p.id)&&p.status!=="sold"?"✓":""}</td><td>${st}</td></tr>`;}).join("")||`<tr><td colspan="5">No shortlist yet</td></tr>`;
+  const squad=[capOf(t)].filter(Boolean).map(c=>`<li>👑 ${esc(c.name)} (captain)</li>`).concat(soldOf(tid).map(p=>`<li>✓ ${esc(p.name)} — bought ${fmt(p.price)}</li>`))
+    .concat(s.live.map(p=>`<li>📋 ${esc(p.name)} — plan up to ${fmt(planPrice(p.id))}</li>`)).concat(Array.from({length:Math.max(0,s.free)},()=>"<li>Open slot</li>")).join("");
+  const combos=PLAN.combos.map(c=>{const st=comboState(c,tid);return `<tr><td><b>${esc(c.name)}</b></td><td>${c.pids.map(pid=>P(pid)?esc(P(pid).name):"").filter(Boolean).join(", ")}</td><td style="text-align:right">${fmt(st.cost)}</td></tr>`;}).join("");
   const body=`<h1>${esc(brandTitle())} — ${esc(t.name)} bidding plan</h1>${organiserLine()||eventSub()?`<p class="m">${esc([eventSub(),organiserLine()?"Organised by "+organiserLine():""].filter(Boolean).join(" · "))}</p>`:""}
     <p class="m">Printed ${new Date().toLocaleString("en-IN")} · Purse left <b>${fmt(s.lf)}</b> · Slots left <b>${s.o}</b> · Max on one player <b>${fmt(maxBid(tid))}</b> · Base ${fmt(D.cfg.base)}, raise +${fmt(D.cfg.inc)}</p>
-    <h2>My squad</h2><ul>${squad}</ul>
-    <h2>Targets (by priority)</h2><table><tr><th>#</th><th>Player</th><th>Max I'll pay</th><th>Note</th><th>Status</th></tr>${rows}</table>
-    <p class="m">Top ${s.top.length} available targets cost up to <b>${fmt(s.sum)}</b> of ${fmt(s.lf)} left.</p>`;
+    <h2>Squad — bought + planned</h2><ul>${squad}</ul>
+    <p class="m">Plan spend <b>${fmt(s.sum)}</b> · left after plan <b>${fmt(s.after)}</b></p>
+    <h2>Shortlist (by priority) — ${stillToCome().length} of ${myTargets().length} still to come</h2><table><tr><th>#</th><th>Player</th><th>Max I'll pay</th><th>Plan squad</th><th>Status</th></tr>${rows}</table>
+    ${combos?`<h2>Saved combinations</h2><table><tr><th>Name</th><th>Players</th><th>Cost</th></tr>${combos}</table>`:""}`;
   const doc=`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(t.name)} plan</title>
     <style>body{font-family:Arial,sans-serif;color:#111;margin:22px}h1{font-size:21px;color:#0d1b4b;border-bottom:3px solid #c8a030;padding-bottom:6px}h2{font-size:16px;color:#0d1b4b;margin-top:18px}
     .m{color:#444;font-size:14px}table{width:100%;border-collapse:collapse;margin-top:6px}th,td{border:1px solid #ccc;padding:6px 8px;font-size:14px;text-align:left}th{background:#0d1b4b;color:#fff}</style></head>
@@ -1369,14 +1525,78 @@ function makeTeamsImage(tid){
 }
 function dataURLtoBlob(u){ const [m,b]=u.split(","), bin=atob(b), arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i); return new Blob([arr],{type:m.split(":")[1].split(";")[0]}); }
 let IMG_LAST=null;   // {url,name,blob}
+/* plan / combination picture — for sharing inside your team */
+function makePlanImage(tid,title,pids,maxes){
+  const t=T(tid), cap=capOf(t), S=2, W=1080, pad=40, headH=170, ROW=58, base=D.cfg.base;
+  const orgIm=orgsShown().map(o=>imgReady(o.logo)).filter(Boolean), org=organiserLine(), hb=hostB();
+  const rows=[{name:cap?cap.name:"Captain",cap:true}];
+  soldOf(tid).sort((a,b)=>b.price-a.price).forEach(p=>rows.push({name:p.name,price:p.price,bought:true}));
+  const o=openSlots(tid); let spend=0;
+  pids.map(P).filter(p=>p&&available(p)).slice(0,o).forEach(p=>{ const tg=PLAN.targets[p.id]||{}, pr=planPrice(p.id,maxes?maxes[p.id]:undefined); spend+=pr;
+    rows.push({name:p.name,price:pr,plan:true,prio:tg.prio,hasMax:!!num(maxes?maxes[p.id]:tg.max)}); });
+  while(rows.length<1+D.cfg.slots)rows.push({open:true});
+  const cardH=170+rows.length*ROW+20, H=headH+cardH+110;
+  const cv=document.createElement("canvas"); cv.width=W*S; cv.height=H*S;
+  const ctx=cv.getContext("2d"); ctx.scale(S,S);
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#13245e"); g.addColorStop(1,"#05081a"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.textBaseline="middle"; let tx=pad+94;
+  if(orgIm.length){ let x=pad; orgIm.slice(0,3).forEach(im=>{ x+=drawLogoChip(ctx,im,x,42,80,200)+10; }); tx=x+12; }
+  else { ctx.fillStyle="#e8c050"; rr(ctx,pad,46,72,72,18); ctx.fill(); ctx.textAlign="center"; ctx.font=CF(400,40); ctx.fillText("📋",pad+36,84); }
+  ctx.textAlign="left"; ctx.fillStyle="#eef2fb"; ctx.font=CF(900,44,"Cinzel, Georgia, serif"); ctx.fillText(fitTx(ctx,brandTitle().toUpperCase(),W-tx-pad),tx,70);
+  ctx.fillStyle="#e8c050"; ctx.font=CF(800,20); ctx.fillText(fitTx(ctx,"BIDDING PLAN"+(eventSub()?"  ·  "+eventSub():""),W-tx-pad),tx+2,108);
+  const x=pad, y=headH, w=W-pad*2;
+  ctx.fillStyle="#142042"; rr(ctx,x,y,w,cardH,24); ctx.fill(); ctx.strokeStyle="#33457a"; ctx.lineWidth=2; ctx.stroke();
+  ctx.save(); rr(ctx,x,y,w,cardH,24); ctx.clip(); ctx.fillStyle=t.color; ctx.fillRect(x,y,w,10); ctx.restore();
+  let cy=y+54; ctx.fillStyle=t.color; ctx.beginPath(); ctx.arc(x+38,cy,11,0,Math.PI*2); ctx.fill();
+  ctx.textAlign="right"; ctx.fillStyle="#e8c050"; ctx.font=CF(800,24); ctx.fillText(fitTx(ctx,title,300),x+w-28,cy); const tw=Math.min(300,ctx.measureText(title).width);
+  ctx.textAlign="left"; ctx.fillStyle="#eef2fb"; ctx.font=CF(800,34); ctx.fillText(fitTx(ctx,t.name,w-tw-110),x+60,cy);
+  // three numbers
+  const lf=left(tid), after=lf-spend, kw=(w-60-20)/3, ky=y+88;
+  [["PURSE LEFT",fmt(lf),"#34d399"],["PLAN SPEND",fmt(spend),"#fb923c"],["LEFT AFTER PLAN",fmt(after),after<0?"#fb7185":"#eef2fb"]].forEach((k,i)=>{
+    const kx=x+30+i*(kw+10); ctx.fillStyle="#0e1730"; rr(ctx,kx,ky,kw,62,12); ctx.fill();
+    ctx.textAlign="center"; ctx.fillStyle=k[2]; ctx.font=CF(800,24); ctx.fillText(k[1],kx+kw/2,ky+24); ctx.fillStyle="#6b7ca6"; ctx.font=CF(800,12); ctx.fillText(k[0],kx+kw/2,ky+48); });
+  const top=y+170;
+  rows.forEach((r,i)=>{
+    const ry=top+i*ROW, rh=ROW-10, mid=ry+rh/2;
+    rr(ctx,x+20,ry,w-40,rh,13);
+    if(r.open){ ctx.fillStyle="rgba(255,255,255,0.02)"; ctx.fill(); ctx.setLineDash([7,7]); ctx.strokeStyle="#33457a"; ctx.lineWidth=2; ctx.stroke(); ctx.setLineDash([]); }
+    else if(r.plan){ ctx.fillStyle="rgba(45,212,191,0.08)"; ctx.fill(); ctx.strokeStyle="rgba(45,212,191,0.45)"; ctx.lineWidth=2; ctx.stroke(); }
+    else { ctx.fillStyle=r.cap?"rgba(232,192,80,0.10)":"#0e1730"; ctx.fill(); }
+    ctx.textAlign="right"; let rightW=0;
+    if(r.cap){ ctx.font=CF(800,17); ctx.fillStyle="#e8c050"; ctx.fillText("CAPTAIN",x+w-40,mid); rightW=ctx.measureText("CAPTAIN").width; }
+    else if(r.bought){ ctx.font=CF(800,25); ctx.fillStyle="#e8c050"; const pr=fmt(r.price); ctx.fillText(pr,x+w-40,mid); rightW=ctx.measureText(pr).width;
+      ctx.font=CF(800,13); ctx.fillStyle="#34d399"; ctx.fillText("BOUGHT",x+w-52-rightW,mid); rightW+=ctx.measureText("BOUGHT").width+12; }
+    else if(r.plan){ ctx.font=CF(800,25); ctx.fillStyle="#2dd4bf"; const pr=(r.hasMax?"up to ":"base ")+fmt(r.price); ctx.fillText(pr,x+w-40,mid); rightW=ctx.measureText(pr).width; }
+    ctx.textAlign="left"; let nx=x+40;
+    if(r.plan){ const tag=r.prio?"#"+r.prio:"PLAN"; ctx.font=CF(800,15); const tw2=ctx.measureText(tag).width+16; ctx.fillStyle="rgba(45,212,191,0.18)"; rr(ctx,nx,mid-14,tw2,28,8); ctx.fill(); ctx.fillStyle="#2dd4bf"; ctx.fillText(tag,nx+8,mid+1); nx+=tw2+12; }
+    ctx.font=CF(r.open?500:700,25); ctx.fillStyle=r.open?"#6b7ca6":"#eef2fb";
+    ctx.fillText(fitTx(ctx,r.open?"Open slot":(r.cap?"★ "+r.name:r.name),x+w-rightW-70-nx),nx,mid);
+  });
+  ctx.textAlign="left"; let ly=headH+cardH+34;
+  ctx.fillStyle="#c3cde3"; ctx.font=CF(700,18); ctx.fillText(fitTx(ctx,`${title} · max on one player now ${fmt(maxBid(tid))}${after>=0&&o>pids.length?"":""}`,W-pad*2),pad,ly); ly+=28;
+  ctx.fillStyle="#6b7ca6"; ctx.font=CF(500,15); ctx.fillText(fitTx(ctx,`Private team plan · ${new Date().toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}${org?"  ·  Organised by "+org:""}`,W-pad*2),pad,ly); ly+=24;
+  ctx.fillStyle="#56658a"; ctx.font=CF(500,13); ctx.fillText(fitTx(ctx,`${org?"Hosted on":"Run by"} ${hb.name}`,W-pad*2),pad,ly);
+  return cv;
+}
+function openPlanImage(cid){
+  const tid=ME.team; let title,pids,maxes;
+  if(cid){ const c=PLAN.combos.find(x=>x.id===cid); if(!c)return; title=c.name; pids=c.pids; maxes=c.maxes; }
+  else{ const s=planSums(tid); if(!s.live.length){toast("Add players to your plan squad first","err");return;} pids=s.live.map(p=>p.id);
+    const m=PLAN.combos.find(c=>sameSet(c.pids,pids)); title=m?m.name:"My plan"; }
+  let cv; try{ cv=makePlanImage(tid,title,pids,maxes); }catch(e){ toast("Couldn't make the image","err"); return; }
+  showImageModal(cv,T(tid).name+" · "+title,T(tid).name+" "+title);
+}
 function openImageModal(tid){
   let cv; try{ cv=makeTeamsImage(tid||null); }catch(e){ toast("Couldn't make the image","err"); return; }
-  const url=cv.toDataURL("image/png"), base=(tid?T(tid).name:brandTitle()+" all teams").replace(/[^a-z0-9]+/gi,"_").replace(/^_|_$/g,"");
+  showImageModal(cv,tid?T(tid).name:"All teams",tid?T(tid).name:brandTitle()+" all teams");
+}
+function showImageModal(cv,title,fname){
+  const url=cv.toDataURL("image/png"), base=fname.replace(/[^a-z0-9]+/gi,"_").replace(/^_|_$/g,"");
   IMG_LAST={url,name:base+".png",blob:dataURLtoBlob(url)};
   let canShare=false; try{ canShare=!!(navigator.canShare&&navigator.canShare({files:[new File([IMG_LAST.blob],IMG_LAST.name,{type:"image/png"})]})); }catch(e){}
   const bg=document.createElement("div"); bg.className="modal-bg"; bg.id="imgModal";
   bg.innerHTML=`<div class="modal" style="max-width:720px;max-height:92vh;overflow:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">${tid?esc(T(tid).name):"All teams"} — image</h3><button class="btn b-ghost xs" data-act="imgClose">✕</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">${esc(title)} — image</h3><button class="btn b-ghost xs" data-act="imgClose">✕</button></div>
     <img id="imgPrev" src="${url}" alt="Team squads" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block"/>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       ${canShare?`<button class="btn b-gold" data-act="imgShare" style="flex:1">📤 Share (WhatsApp / Save to Photos)</button>`:""}
@@ -1428,13 +1648,27 @@ document.addEventListener("click",e=>{
     case "pfilter": PLAN_FILTER=d.f; render(true); break;
     case "star": { const pid=d.p, t=PLAN.targets[pid]||(PLAN.targets[pid]={});
         t.fav=!t.fav;
-        if(t.fav&&!t.prio){ const used=myTargets().filter(x=>x.p.id!==pid).map(x=>num(x.t.prio)); t.prio=String((used.length?Math.max(...used):0)+1); }
-        if(!t.fav){ delete DIRTY["pl_prio_"+pid]; delete DIRTY["pl_max_"+pid]; delete DIRTY["pl_note_"+pid]; }
+        if(t.fav&&!t.prio) t.prio=nextPrio(pid);
+        if(!t.fav){ delete DIRTY["pl_prio_"+pid]; delete DIRTY["pl_max_"+pid]; delete DIRTY["pl_note_"+pid]; PLAN.squad=PLAN.squad.filter(x=>x!==pid); }
         savePlanSoon(); render(true); break; }
+    case "sqAdd": { const pid=d.p, p=P(pid); if(!p)break;
+        if(inSquad(pid)&&p.status!=="sold"){ PLAN.squad=PLAN.squad.filter(x=>x!==pid); savePlanSoon(); toast(p.name+" back on the shortlist","ok"); render(true); break; }
+        if(!available(p)){ toast(p.name+" is no longer available","err"); break; }
+        const sm=planSums(ME.team); if(sm.free<=0){ toast(sm.o?"Plan squad is full — tap ✕ on a player to free a slot":"Your squad is already complete","err"); break; }
+        const t=PLAN.targets[pid]||(PLAN.targets[pid]={}); if(!t.fav){ t.fav=true; if(!t.prio)t.prio=nextPrio(pid); }
+        PLAN.squad=PLAN.squad.filter(x=>x!==pid).concat(pid); savePlanSoon(); toast(p.name+" added to your plan squad","ok"); render(true); break; }
+    case "sqDel": { const p=P(d.p); PLAN.squad=PLAN.squad.filter(x=>x!==d.p); savePlanSoon(); if(p)toast(p.name+" back on the shortlist — slot free","ok"); render(true); break; }
+    case "sqClear": confirmBox("Clear your plan squad? Your shortlist and saved combinations stay.",()=>{ PLAN.squad=[]; savePlanSoon(); render(true); }); break;
+    case "comboSave": saveCombo(); break;
+    case "toSquad": { const el2=$("#planSquad"); if(el2)el2.scrollIntoView({behavior:"smooth",block:"start"}); break; }
+    case "comboLoad": loadCombo(d.c); break;
+    case "comboDel": { const c=PLAN.combos.find(x=>x.id===d.c); if(!c)break; confirmBox(`Delete the combination <b>${esc(c.name)}</b>?`,()=>{ PLAN.combos=PLAN.combos.filter(x=>x.id!==d.c); savePlanSoon(); render(true); }); break; }
+    case "comboImg": openPlanImage(d.c||null); break;
     case "printPlan": printPlan(); break;
     case "otab": OTAB=d.t; render(true); window.scrollTo(0,0); break;
     case "brandAdd": { if(!canBrand())break; const list=brandList(d.k), max=d.k==="organisers"?MAX_ORGS:MAX_SPONS; if(list.length>=max)break;
-        list.push({id:d.k[0]+Date.now().toString(36),name:"",logo:"",invert:false}); BRAND=normBrand(BRAND); render(true); break; }
+        list.push({id:d.k[0]+Date.now().toString(36),name:"",logo:"",invert:false}); brandChanged(); break; }
+    case "pickLogo": pickLogo(d.k,d.id); break;
     case "brandInvert": { if(!canBrand())break; const o=findBrand(d.k,d.id); if(!o)break; o.invert=!logoInv(d.k==="host"?Object.assign({},o,{_host:true}):o); brandChanged(); break; }
     case "brandClearLogo": { if(!canBrand())break; const o=findBrand(d.k,d.id); if(!o)break; confirmBox(d.k==="host"?"Go back to the RISE Sports logo?":"Remove this logo?",()=>{o.logo="";o.invert=d.k==="host";brandChanged(d.k==="host"?"RISE logo restored":"Logo removed");}); break; }
     case "brandRemove": { if(!canBrand())break; const o=findBrand(d.k,d.id); if(!o)break; confirmBox(`Remove <b>${esc(o.name||"this entry")}</b>?`,()=>{ if(d.k==="organisers")BRAND.organisers=BRAND.organisers.filter(x=>x.id!==d.id); else BRAND.sponsors=BRAND.sponsors.filter(x=>x.id!==d.id); brandChanged("Removed"); }); break; }
@@ -1496,12 +1730,6 @@ function saveTeamName(tid){
 document.addEventListener("change",e=>{
   const el=e.target;
   // branding edits (auctioneer / organiser)
-  if(el&&el.dataset&&el.dataset.act==="logoFile"&&canBrand()){
-    const f=el.files&&el.files[0], k=el.dataset.k, id=el.dataset.id; el.value=""; if(!f)return;
-    if(!/^image\//.test(f.type)){toast("That is not an image file","err");return;}
-    readLogo(f).then(url=>{ const o=findBrand(k,id); if(!o)return; o.logo=url; o.invert=false; brandChanged("Logo added"); }).catch(err=>toast(String(err.message||err),"err"));
-    return;
-  }
   if(el&&el.id&&canBrand()){
     let hit=false;
     if(el.id==="ev_title"||el.id==="ev_sub"||el.id==="ev_contact"){ BRAND.event[el.id.slice(3)]=el.value.trim(); hit=true; }
