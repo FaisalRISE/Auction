@@ -171,6 +171,24 @@ details.rules{margin-top:14px;background:var(--surface);border:1px solid var(--l
 details.rules summary{cursor:pointer;font-weight:700;color:var(--muted)}
 details.rules ul{margin:8px 0 2px 18px;color:var(--muted);font-size:14px;line-height:1.7}
 
+/* home chooser */
+.home{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.home{grid-template-columns:1fr}}
+.homecard{display:block;text-decoration:none;color:var(--text);background:var(--card2);border:1px solid var(--line2);border-radius:16px;padding:20px 18px;transition:.12s}
+.homecard:hover{border-color:var(--gold2);transform:translateY(-2px)}
+.homecard.gold{background:linear-gradient(160deg,#c8a03024,var(--card2));border-color:#c8a03066}
+.homecard .ic{font-size:34px}.homecard .t{font-size:20px;font-weight:800;margin-top:8px}.homecard .s{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.45}
+a.btn{text-decoration:none}
+/* bid history + pause */
+.feed{margin-top:14px}
+.fd{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;font-size:14px}
+.fd:nth-child(even){background:#ffffff06}
+.fd.new{background:#c8a03016}
+.pausebar{margin-top:12px;padding:10px 14px;border-radius:12px;background:#fb923c1f;border:1px solid #fb923c66;color:var(--orange);font-weight:900;letter-spacing:1px;text-align:center;animation:pz 1.6s ease-in-out infinite}
+@keyframes pz{0%,100%{opacity:1}50%{opacity:.55}}
+.pres-feed{width:min(620px,90%);margin-top:10px}
+.pres-feed .fd{font-size:19px;padding:7px 12px}
+.pres-feed .hd{display:none}
 /* presenter */
 .pres{min-height:100vh;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% 15%,#13245e,#04060f 70%)}
 .pres-h{display:flex;align-items:center;justify-content:space-between;padding:18px 32px}
@@ -218,8 +236,12 @@ let LOGS=[], CODES=null;
 let RT="CONNECTING", NET_OK=true;
 let SEEN_SEQ=null, SEQ_AT=Date.now(), LAST_RES_AT=undefined, LAST_PLAYER=null;
 let BUSY=false, PENDING=false, SOUND=false, GOING_SAID=0, SHOW_CODE=false;
+let FEED=[], FEED_KEY=null, PAUSE_R=0, WAS_PAUSED=false;   // bid history for the player on the block; pause bookkeeping
+let PRES_CH=null, ONLINE={}, LASTSEEN={}, PRES_READY=false;   // who is connected right now
 const Q=new URLSearchParams(location.search);
 const IS_PRES=Q.get("view")==="presenter";
+const IS_WATCH=Q.get("view")==="watch";                       // public view-only mode, no login
+const WANT_LOGIN=!!(Q.get("login")||Q.get("team")||Q.get("admin"));
 let LOGIN_TEAM=Q.get("team")||"";
 let LOGIN_ADMIN=Q.get("admin")==="1";
 
@@ -251,6 +273,7 @@ const baseLink=()=>location.origin+location.pathname;
 
 function canRaise(tid){
   if(!lotOpen())return{ok:false,why:"No player on the block"};
+  if(D.lot.paused)return{ok:false,why:"Bidding is paused",amt:nextRaise()};
   if(openSlots(tid)<=0)return{ok:false,why:"Squad full"};
   if(D.lot.lead_team===tid&&!ties().length)return{ok:false,why:"You are the highest bidder"};
   const a=nextRaise();
@@ -259,6 +282,7 @@ function canRaise(tid){
 }
 function canMatch(tid){
   if(!lotOpen()||!D.lot.lead_team)return{ok:false,hide:true,why:"Nothing to match yet"};
+  if(D.lot.paused)return{ok:false,why:"Bidding is paused",amt:D.lot.bid};
   if(atTop(tid))return{ok:false,why:"You are at this price",amt:D.lot.bid};
   if(openSlots(tid)<=0)return{ok:false,why:"Squad full",amt:D.lot.bid};
   const thr=D.cfg.match_thr;
@@ -266,9 +290,9 @@ function canMatch(tid){
   if(D.lot.bid>maxBid(tid))return{ok:false,why:"Over your max bid ("+fmt(maxBid(tid))+")",amt:D.lot.bid};
   return{ok:true,amt:D.lot.bid};
 }
-function timeLeft(){ if(!lotOpen())return 0; return Math.max(0,D.cfg.timer_sec-(Date.now()-SEQ_AT)/1000); }
+function timeLeft(){ if(!lotOpen())return 0; if(D.lot.paused)return PAUSE_R; return Math.max(0,D.cfg.timer_sec-(Date.now()-SEQ_AT)/1000); }
 function goingText(r){
-  if(!lotOpen()||!D.lot.lead_team)return{t:"",c:""};
+  if(!lotOpen()||!D.lot.lead_team||D.lot.paused)return{t:"",c:""};
   const ts=D.cfg.timer_sec||20;
   if(r<=0)return{t:"FINAL CALL",c:"var(--gold)"};
   if(r<=ts*0.2)return{t:"GOING TWICE",c:"var(--red)"};
@@ -328,6 +352,7 @@ async function fetchAll(){
     if(c.error||t.error||p.error||l.error) throw (c.error||t.error||p.error||l.error);
     D={cfg:c.data,teams:t.data,players:p.data,lot:l.data};
     NET_OK=true;
+    await loadFeed();
     onData();
   }catch(e){ NET_OK=false; renderConn(); }
   fetching=false;
@@ -335,7 +360,11 @@ async function fetchAll(){
 }
 function onData(){
   const l=D.lot;
-  if(l.seq!==SEEN_SEQ){ SEEN_SEQ=l.seq; SEQ_AT=Date.now(); GOING_SAID=0; }
+  if(l.seq!==SEEN_SEQ){
+    const r0=SEEN_SEQ===null?D.cfg.timer_sec:Math.max(0,D.cfg.timer_sec-(Date.now()-SEQ_AT)/1000);
+    if(l.paused&&!WAS_PAUSED)PAUSE_R=r0;            // freeze the countdown where it was
+    WAS_PAUSED=!!l.paused; SEEN_SEQ=l.seq; SEQ_AT=Date.now(); GOING_SAID=0;
+  }
   // sold / unsold flash
   const ra=l.last_result&&l.last_result.at;
   if(LAST_RES_AT!==undefined && ra && ra!==LAST_RES_AT) showResult(l.last_result);
@@ -353,10 +382,69 @@ function subscribe(){
   ["auc_lot","auc_players","auc_teams","auc_config"].forEach(tb=>ch.on("postgres_changes",{event:"*",schema:"public",table:tb},schedule));
   ch.subscribe(st=>{RT=st;renderConn();if(st==="SUBSCRIBED")fetchAll();});
 }
+/* ── Presence: each logged-in captain's page announces itself; the auctioneer sees who is connected ── */
+function presenceSetup(){
+  const key=(IS_PRES?"pres-":"c-")+Math.random().toString(36).slice(2,10);
+  PRES_CH=sb.channel("auc_presence",{config:{presence:{key}}});
+  PRES_CH.on("presence",{event:"sync"},()=>{
+    const st=PRES_CH.presenceState(), on={};
+    Object.values(st).forEach(arr=>(arr||[]).forEach(m=>{ if(m&&m.role==="team"&&m.team){ on[m.team]=(on[m.team]||0)+1; } }));
+    const now=Date.now();
+    Object.keys(ONLINE).forEach(t=>{ if(!on[t])LASTSEEN[t]=now; });   // just went offline
+    Object.keys(on).forEach(t=>{ LASTSEEN[t]=now; });
+    ONLINE=on; PRES_READY=true;
+    if(ME&&ME.role==="admin")render();
+  });
+  PRES_CH.subscribe(st=>{ if(st==="SUBSCRIBED")trackMe(); });
+}
+async function trackMe(){
+  if(!PRES_CH)return;
+  try{
+    if(ME&&ME.role==="team") await PRES_CH.track({role:"team",team:ME.team,at:Date.now()});
+    else if(ME&&ME.role==="admin") await PRES_CH.track({role:"admin",at:Date.now()});
+    else await PRES_CH.untrack();
+  }catch(e){}
+}
+const agoTxt=ms=>{const s=Math.round(ms/1000);if(s<60)return "just now";const m=Math.round(s/60);if(m<60)return m+" min ago";return Math.round(m/60)+" h ago";};
+function presenceBar(){
+  const n=D.teams.filter(t=>ONLINE[t.id]).length;
+  const chips=D.teams.map(t=>{const on=!!ONLINE[t.id],c=capOf(t);
+    return `<span class="chip" title="${on?"Online now":(LASTSEEN[t.id]?"Last seen "+agoTxt(Date.now()-LASTSEEN[t.id]):"Not seen yet")}" style="gap:6px;${on?"background:#34d39918;color:var(--text)":"color:var(--dim)"}">
+      <i style="width:9px;height:9px;border-radius:50%;display:inline-block;background:${on?"var(--green)":"#566a86"};${on?"box-shadow:0 0 6px var(--green)":""}"></i>${esc(c?c.name:t.name)}</span>`;}).join("");
+  const all=n===D.teams.length;
+  return `<div class="card" style="padding:10px 12px;margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <b style="font-size:14px;color:${all?"var(--green)":"var(--gold)"};margin-right:4px">${PRES_READY?`${all?"✓ ":""}Captains online ${n}/${D.teams.length}`:"Checking who's online…"}</b>${chips}</div>`;
+}
+setInterval(()=>{ if(ME&&ME.role==="admin"&&(TAB==="live"||TAB==="teams")&&Object.keys(LASTSEEN).length)render(); },30000);
 setInterval(()=>{ if(document.hidden)return; if(RT!=="SUBSCRIBED"||!NET_OK)fetchAll(); },3000);
 setInterval(()=>{ if(!document.hidden)fetchAll(); },20000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)fetchAll();});
 
+/* bid history for the player currently on the block (since they were last brought up) */
+async function loadFeed(){
+  const l=D.lot;
+  if(!(l&&l.status==="open"&&l.player_id)){FEED=[];FEED_KEY=null;return;}
+  const k=l.player_id+":"+l.seq; if(k===FEED_KEY)return;
+  try{
+    const f=await sb.from("auc_log").select("id,at,action,team_id,team_name,amount").eq("player_id",l.player_id)
+      .in("action",["nominate","raise","match","undo","PAUSE","RESUME"]).order("id",{ascending:false}).limit(20);
+    if(f.error)return;
+    const out=[]; for(const e of f.data){ if(e.action==="nominate")break; out.push(e); }
+    FEED=out; FEED_KEY=k;
+  }catch(e){}
+}
+function feedHtml(max){
+  if(!lotOpen())return "";
+  const rows=FEED.slice(0,max).map((e,i)=>{
+    const t=T(e.team_id), tm=new Date(e.at).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    let txt;
+    if(e.action==="undo") txt=`<span class="dim">↩ Auctioneer undid the last bid</span>`;
+    else if(e.action==="PAUSE") txt=`<span style="color:var(--orange)">⏸ Bidding paused</span>`;
+    else if(e.action==="RESUME") txt=`<span style="color:var(--green)">▶ Bidding resumed</span>`;
+    else txt=`${tdot(t)} <b>${esc(t?t.name:e.team_name)}</b> <span class="dim">${e.action==="match"?"matched":"bid"}</span> <b style="color:var(--gold)">${fmt(e.amount)}</b>`;
+    return `<div class="fd ${i===0?"new":""}"><span>${txt}</span><span class="dim" style="font-size:11px;white-space:nowrap">${tm}</span></div>`;}).join("");
+  return `<div class="feed"><div class="hd">Bid history</div>${rows||`<div class="dim" style="font-size:13px;padding:4px 2px">No bids yet</div>`}</div>`;
+}
 async function loadLogs(){
   const r=await sb.from("auc_log").select("*").order("id",{ascending:false}).limit(300);
   if(!r.error){LOGS=r.data;if(TAB==="log")render();}
@@ -393,9 +481,9 @@ async function login(role,code){
   if(error){toast(errMsg(error),"err");return;}
   if(!data){toast("Wrong passcode","err");return;}
   ME={role:role==="admin"?"admin":"team",team:role==="admin"?null:role,code};
-  saveSession(ME); TAB="live"; render(true);
+  saveSession(ME); TAB="live"; render(true); trackMe();
 }
-function logout(){ for(const k in DIRTY)delete DIRTY[k]; ME=null; saveSession(null); CODES=null; LOGIN_ADMIN=false; render(true); }
+function logout(){ for(const k in DIRTY)delete DIRTY[k]; ME=null; saveSession(null); CODES=null; LOGIN_ADMIN=false; render(true); trackMe(); }
 
 /* ═══════════════ RENDER ═══════════════ */
 function render(force){
@@ -405,7 +493,8 @@ function render(force){
   const app=$("#app");
   if(!D.cfg){app.innerHTML=`<div class="wait" style="padding-top:120px"><div class="big-ic">🏆</div>${NET_OK?"Connecting…":"Can't reach the server — check your internet. Retrying…"}</div>`;return;}
   if(IS_PRES){app.innerHTML=viewPresenter();tick();return;}
-  if(!ME){app.innerHTML=header()+viewLogin();restoreDirty();return;}
+  if(IS_WATCH){app.innerHTML=header()+viewWatch();tick();return;}
+  if(!ME){app.innerHTML=header()+(WANT_LOGIN?viewLogin():viewHome());restoreDirty();return;}
   if(ME.role==="team"&&!T(ME.team)){logout();return;}
   app.innerHTML=header()+(ME.role==="admin"?viewAdmin():viewCaptain());
   restoreDirty();
@@ -423,13 +512,17 @@ document.addEventListener("input",e=>{const t=e.target;if(t&&t.id&&t.closest&&t.
 function restoreDirty(){ for(const id in DIRTY){ const el=document.getElementById(id); if(el&&el.value!==DIRTY[id])el.value=DIRTY[id]; } }
 
 function header(){
-  let who="";
-  if(ME&&ME.role==="team"){const t=T(ME.team);who=`<span class="whoami">${tdot(t)}${esc(t.name)}</span>`;}
-  if(ME&&ME.role==="admin")who=`<span class="whoami">🔨 Auctioneer</span>`;
+  let who="",btns="";
+  const home=`<a class="btn b-ghost sm" href="${baseLink()}">← Home</a>`;
+  if(IS_WATCH){ who=`<span class="whoami">👀 Watching live</span>`; btns=home; }
+  else if(ME){
+    if(ME.role==="team"){const t=T(ME.team);who=`<span class="whoami">${tdot(t)}${esc(t.name)}</span>`;}
+    if(ME.role==="admin")who=`<span class="whoami">🔨 Auctioneer</span>`;
+    btns=`<button class="btn b-ghost sm" data-act="logout">Log out</button>`;
+  } else if(WANT_LOGIN) btns=home;
   return `<div class="hdr"><div class="hdr-in">
     <div class="brand"><div class="logo">🏆</div><div><h1>${esc((D.cfg.title||"Auction").toUpperCase())}</h1><p>Live Player Auction</p></div></div>
-    <span class="conn" id="conn"></span>${who}
-    ${ME?`<button class="btn b-ghost sm" data-act="logout">Log out</button>`:""}
+    <span class="conn" id="conn"></span>${who}${btns}
   </div></div>`;
 }
 function renderConn(){
@@ -437,6 +530,38 @@ function renderConn(){
   if(!NET_OK){el.className="conn off";el.innerHTML="<i></i>Offline";}
   else if(RT==="SUBSCRIBED"){el.className="conn live";el.innerHTML="<i></i>Live";}
   else{el.className="conn poll";el.innerHTML="<i></i>Syncing";}
+}
+
+/* ── HOME: choose how to join ── */
+function viewHome(){
+  const p=lotOpen()?P(D.lot.player_id):null;
+  const live=p?`<div style="text-align:center;margin-bottom:12px"><span class="chip" style="color:var(--green);font-size:13px">● Live now — ${esc(p.name)} is on the block</span></div>`:"";
+  return `<div class="wrap"><div class="card login" style="max-width:640px">
+    <div class="sec" style="margin-top:0;text-align:center">How do you want to join?</div>${live}
+    <div class="home">
+      <a class="homecard" href="?view=watch"><div class="ic">👀</div><div class="t">Watch the auction</div><div class="s">No login needed. See every bid live — who is bidding for whom, and each team's squad &amp; purse.</div></a>
+      <a class="homecard gold" href="?login=1"><div class="ic">🛡️</div><div class="t">Captain login</div><div class="s">Bid for your team using the passcode you were sent.</div></a>
+    </div>
+    <div style="display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <a class="btn b-ghost sm" href="?admin=1">🔨 Auctioneer</a><a class="btn b-ghost sm" href="?view=presenter">📺 Projector screen</a>
+    </div>
+  </div></div>`;
+}
+
+/* ── WATCH: public, view-only ── */
+function viewWatch(){
+  const leftHtml=lotOpen()?blockInfo()+feedHtml(10):waitBox();
+  const teams=D.teams.map(t=>{const cap=capOf(t),pl=soldOf(t.id).sort((a,b)=>b.price-a.price),o=openSlots(t.id);
+    const ppl=[`<div class="sq" style="padding:6px 10px;font-size:14px"><span>👑 ${esc(cap?cap.name:"")}</span><span class="dim" style="font-size:12px">captain</span></div>`]
+      .concat(pl.map(x=>`<div class="sq" style="padding:6px 10px;font-size:14px"><span>${esc(x.name)}</span><span class="pr">${fmt(x.price)}</span></div>`))
+      .concat(Array.from({length:o},()=>`<div class="sq open" style="padding:6px 10px;font-size:13px"><span>open slot</span><span></span></div>`)).join("");
+    return `<div class="tcard ${atTop(t.id)?"top":""}">
+      <div class="row1"><span class="nm">${tdot(t)}${esc(t.name)}</span><span style="font-weight:800;color:var(--green)">${short(left(t.id))} left</span></div>
+      <div class="meta" style="margin-bottom:6px">max bid <b style="color:var(--gold)">${fmt(maxBid(t.id))}</b> · ${bought(t.id)}/${D.cfg.slots} bought${atTop(t.id)?` · <b style="color:var(--gold)">${topTeams().length>1?"tied at top":"leading"}</b>`:""}</div>${ppl}</div>`;}).join("");
+  return `<div class="wrap"><div class="live">
+    <div class="card block">${leftHtml}</div>
+    <div><div class="hd" style="margin-top:0">Teams</div>${teams}</div>
+  </div></div>`;
 }
 
 /* ── LOGIN ── */
@@ -453,7 +578,7 @@ function viewLogin(){
     <button class="btn b-gold" style="width:100%;padding:13px" data-act="doLogin">Enter auction</button>
     <div style="display:flex;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap">
       <button class="btn b-ghost sm" data-act="toggleAdmin">${LOGIN_ADMIN?"← Captain login":"🔨 Auctioneer"}</button>
-      <a class="btn b-ghost sm" href="?view=presenter" style="text-decoration:none">📺 Presenter screen</a>
+      <a class="btn b-ghost sm" href="?view=watch">👀 Just watch</a>
     </div>
   </div></div>`;
 }
@@ -472,6 +597,7 @@ function blockInfo(){
     <div class="bidlbl">${l.lead_team?"Current bid":"Opening price"}</div>
     <div class="bid">${fmt(l.bid)}</div>
     <div class="leader">${lead}</div>
+    ${l.paused?`<div class="pausebar">⏸ BIDDING PAUSED</div>`:""}
     <div class="timer"><div class="tbar"><i class="tbi" style="width:100%"></i></div><span class="tmr">–</span></div>
     <div class="going"></div>`;
 }
@@ -501,7 +627,7 @@ function viewCaptain(){
       <div class="actions">
         <div><button class="big raise" data-act="raise" ${r.ok&&!BUSY?"":"disabled"}>${l.lead_team?"RAISE TO":"OPEN BID"}<b>${fmt(raiseAmt)}</b></button><div class="why">${r.ok?"":esc(r.why)}</div></div>
         <div><button class="big match" data-act="match" ${m.ok&&!BUSY?"":"disabled"}>MATCH<b>${l.lead_team?fmt(l.bid):"—"}</b></button><div class="why">${m.ok?"Same price as the leader":esc(m.why)}</div></div>
-      </div>`;
+      </div>`+feedHtml(6);
   }
   return `<div class="wrap"><div class="live">
     <div class="card block">${leftHtml}</div>
@@ -562,8 +688,10 @@ function adminLive(){
     else soldBtns=tops.map(id=>`<button class="btn b-green" data-act="sold" data-t="${id}" ${BUSY?"disabled":""}>✓ ${tname(id)}</button>`).join("")+
       `<button class="btn b-gold" data-act="drawLots" ${BUSY?"disabled":""}>🎲 Draw lots</button>`;
     blk=blockInfo()+`<div class="ctrl">${soldBtns}</div>
-      <div class="ctrl"><button class="btn b-red" data-act="unsold">Unsold</button><button class="btn b-ghost" data-act="undo">↩ Undo bid</button>
-      <button class="btn b-ghost" data-act="resetBid">⟲ Restart bidding</button><button class="btn b-ghost" data-act="hold">⏸ Hold</button></div>`+step;
+      <div class="ctrl">${l.paused?`<button class="btn b-green" data-act="resume">▶ Resume bidding</button>`:`<button class="btn b-orange" data-act="pause">⏸ Pause</button>`}
+      <button class="btn b-red" data-act="unsold">Unsold</button><button class="btn b-ghost" data-act="undo">↩ Undo bid</button>
+      <button class="btn b-ghost" data-act="resetBid">⟲ Restart bidding</button></div>`+step+
+      `<div class="ctrl"><button class="btn b-ghost xs" data-act="hold" title="Take this player off the block without a result — e.g. not present yet">↩ Back to pool (call later)</button></div>`+feedHtml(8);
   } else {
     const pool=poolCount(),uns=unsoldCount();
     blk=waitBox()+`<div class="ctrl"><button class="btn b-gold grow" style="padding:14px" data-act="nextRandom" ${pool?"":"disabled"}>🎲 Next random player</button></div>`+pick+
@@ -581,8 +709,9 @@ function adminLive(){
         ${m.hide?"":`<button class="btn b-orange xs" data-act="admMatch" data-t="${t.id}" ${m.ok?"":"disabled"} title="${esc(m.why||"")}">＝ Match</button>`}</div>`:""}
     </div>`;}).join("");
   const sold=D.players.filter(p=>p.status==="sold").length;
-  return `<div class="counts"><span class="chip">Pool ${poolCount()}</span><span class="chip" style="color:var(--green)">Sold ${sold}</span><span class="chip" style="color:var(--red)">Unsold ${unsoldCount()}</span>
-      <a class="chip" href="?view=presenter" target="_blank" style="text-decoration:none;color:var(--gold)">📺 Open presenter ↗</a></div>
+  return presenceBar()+`<div class="counts"><span class="chip">Pool ${poolCount()}</span><span class="chip" style="color:var(--green)">Sold ${sold}</span><span class="chip" style="color:var(--red)">Unsold ${unsoldCount()}</span>
+      <a class="chip" href="?view=presenter" target="_blank" style="text-decoration:none;color:var(--gold)">📺 Open presenter ↗</a>
+      <span class="chip" data-act="copyLink" data-l="watch" style="cursor:pointer;color:var(--blue)">👀 Copy viewer link</span></div>
     <div class="live"><div class="card block">${blk}</div>
     <div><div class="hd" style="margin-top:0">Teams — backup bidding if a captain's phone fails</div>${teams}</div></div>`;
 }
@@ -616,13 +745,14 @@ function adminTeams(){
   const cards=D.teams.map(t=>{const c=capOf(t);return `<div class="card" style="padding:14px">
     <label>Team name</label><div class="inline" style="margin-bottom:10px"><input id="tn_${t.id}" value="${esc(t.name)}" style="width:100%"/><button class="btn b-gold xs" data-act="saveTeam" data-t="${t.id}">Save</button></div>
     <div style="display:flex;gap:6px;margin-bottom:10px">${colors.map(cl=>`<span data-act="teamColor" data-t="${t.id}" data-c="${cl}" style="width:24px;height:24px;border-radius:7px;background:${cl};cursor:pointer;border:2px solid ${t.color===cl?"#fff":"transparent"}"></span>`).join("")}</div>
-    <div style="margin-bottom:8px">Captain: <b>👑 ${esc(c?c.name:"—")}</b></div>
+    <div style="margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Captain: <b>👑 ${esc(c?c.name:"—")}</b></span>
+      <span style="font-size:13px;font-weight:700;color:${ONLINE[t.id]?"var(--green)":"var(--dim)"}">${ONLINE[t.id]?"● Online now":(LASTSEEN[t.id]?"○ Last seen "+agoTxt(Date.now()-LASTSEEN[t.id]):"○ Not logged in")}</span></div>
     <div class="inline" style="margin-bottom:10px"><select id="cap_${t.id}"><option value="">change captain to…</option>${avail.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select><button class="btn b-ghost xs" data-act="setCap" data-t="${t.id}">Change</button></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);border-radius:10px;padding:8px 10px">
       <span>Passcode <b style="font-size:20px;letter-spacing:3px;color:var(--gold)">${esc(CODES[t.id]||"…")}</b></span>
       <span class="inline"><button class="btn b-ghost xs" data-act="setCode" data-r="${t.id}">Change</button><button class="btn b-blue xs" data-act="copyInvite" data-t="${t.id}">Copy invite</button></span></div>
   </div>`;}).join("");
-  return `<div class="sec">Teams & Passcodes</div>
+  return `<div class="sec">Teams & Passcodes</div>${presenceBar()}<div style="height:10px"></div>
     <div class="ctrl" style="margin-top:0"><button class="btn b-gold" data-act="copyAll">📋 Copy all invites (WhatsApp)</button>
     <span class="chip" style="align-self:center">Auctioneer code: <b style="color:var(--gold);margin-left:4px">${esc(CODES.admin||"…")}</b></span><button class="btn b-ghost sm" data-act="setCode" data-r="admin">Change</button></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px">${cards}</div>`;
@@ -649,7 +779,8 @@ function adminSetup(){
   <div class="card" style="padding:18px;margin-top:14px">
     <div style="font-weight:800;margin-bottom:8px">Links</div>
     <div class="ctrl" style="margin-top:0"><button class="btn b-ghost sm" data-act="copyLink" data-l="captain">Copy captain link</button>
-    <button class="btn b-ghost sm" data-act="copyLink" data-l="presenter">Copy presenter link</button><button class="btn b-ghost sm" data-act="csv">⬇ Results CSV</button></div>
+    <button class="btn b-ghost sm" data-act="copyLink" data-l="presenter">Copy presenter link</button>
+    <button class="btn b-ghost sm" data-act="copyLink" data-l="watch">Copy viewer (watch) link</button><button class="btn b-ghost sm" data-act="csv">⬇ Results CSV</button></div>
   </div>
   <div class="card" style="padding:18px;margin-top:14px;border-color:#5a2440">
     <div style="font-weight:800;color:var(--red);margin-bottom:6px">Danger zone</div>
@@ -670,7 +801,8 @@ function viewPresenter(){
   const head=`<div class="pres-h"><div style="display:flex;align-items:center;gap:14px"><div class="logo" style="width:50px;height:50px;font-size:28px">🏆</div>
     <div><h1>${esc((D.cfg.title||"Auction").toUpperCase())}</h1><div style="font-size:13px;letter-spacing:4px;color:var(--gold);font-weight:700">LIVE PLAYER AUCTION</div></div></div>
     <div style="display:flex;gap:8px;align-items:center"><span class="conn" id="conn"></span>
-    <button class="btn b-ghost sm" data-act="sound">${SOUND?"🔊 Sound on":"🔇 Enable sound"}</button><button class="btn b-ghost sm" data-act="fs">⛶ Full screen</button></div></div>`;
+    <button class="btn b-ghost sm" data-act="sound">${SOUND?"🔊 Sound on":"🔇 Enable sound"}</button><button class="btn b-ghost sm" data-act="fs">⛶ Full screen</button>
+    <a class="btn b-ghost sm" href="${baseLink()}">✕ Exit</a></div></div>`;
   if(!lotOpen()){
     const cards=D.teams.map(t=>{const cap=capOf(t),pl=soldOf(t.id).sort((a,b)=>b.price-a.price),o=openSlots(t.id);
       return `<div class="bcard"><div class="h"><span class="nm">${tdot(t)}${esc(t.name)}</span><span class="lf">${short(left(t.id))}</span></div>
@@ -697,7 +829,8 @@ function viewPresenter(){
       <div class="pres-bid">${fmt(l.bid)}</div>
       <div class="pres-lead">${lead}</div>
       <div style="width:min(520px,80%);margin-top:16px" class="timer"><div class="tbar" style="height:12px"><i class="tbi" style="width:100%"></i></div><span class="tmr" style="font-size:28px">–</span></div>
-      <div class="pres-going going"></div>
+      ${l.paused?`<div class="pres-going" style="color:var(--orange)">⏸ BIDDING PAUSED</div>`:`<div class="pres-going going"></div>`}
+      <div class="pres-feed">${feedHtml(3)}</div>
     </div>
     <div class="pres-rail">${rail}</div>
   </div></div>`;
@@ -706,7 +839,7 @@ function viewPresenter(){
 /* timer tick (updates only the timer bits — never re-renders inputs) */
 function tick(){
   const r=timeLeft(),ts=D.cfg?D.cfg.timer_sec:20;
-  document.querySelectorAll(".tmr").forEach(e=>{e.textContent=lotOpen()?Math.ceil(r)+"s":"–";e.style.color=r<=ts*0.2?"var(--red)":r<=ts*0.4?"var(--orange)":"var(--gold)";});
+  document.querySelectorAll(".tmr").forEach(e=>{e.textContent=!lotOpen()?"–":(D.lot.paused?"⏸":Math.ceil(r)+"s");e.style.color=r<=ts*0.2?"var(--red)":r<=ts*0.4?"var(--orange)":"var(--gold)";});
   document.querySelectorAll(".tbi").forEach(e=>{e.style.width=(lotOpen()?Math.max(0,r/ts*100):0)+"%";e.style.background=r<=ts*0.2?"var(--red)":r<=ts*0.4?"var(--orange)":"var(--gold)";});
   const g=goingText(r);
   document.querySelectorAll(".going").forEach(e=>{e.textContent=g.t;e.style.color=g.c;});
@@ -765,7 +898,9 @@ document.addEventListener("click",e=>{
     case "unsold": adm("unsold"); break;
     case "undo": adm("undo"); break;
     case "resetBid": adm("reset_bid"); break;
-    case "hold": adm("hold"); break;
+    case "pause": adm("pause"); break;
+    case "resume": adm("resume"); break;
+    case "hold": confirmBox(`Put <b>${esc(P(D.lot.player_id).name)}</b> back in the pool without a result?<br><br><span style="font-size:13px">Bids for this player are cleared and he can be called again later. This is <b>not</b> the same as Unsold — use Unsold if nobody wanted him.</span>`,()=>adm("hold")); break;
     case "secondPass": adm("second_pass"); break;
     case "distribute": confirmBox("Give each unsold player to the team with an open slot and the most purse left, at base price?",()=>adm("distribute")); break;
     case "incQuick": { const v=Math.max(500,D.cfg.inc+num(d.d)*(d.d.startsWith("-")?-1:1)); adm("set_config",{inc:v}); break; }
@@ -781,8 +916,8 @@ document.addEventListener("click",e=>{
     case "setCap": { const v=$("#cap_"+d.t).value; if(!v){toast("Pick the new captain","err");break;} confirmBox(`Make <b>${esc(P(v).name)}</b> captain of ${tname(d.t)}? The current captain goes back into the pool.`,()=>adm("set_captain",{team:d.t,player_id:v})); break; }
     case "setCode": promptBox("Change passcode","New passcode (min 4 characters)",CODES[d.r]||"",v=>{if(v)adm("set_code",{role:d.r,code:v}).then(()=>{CODES=null;render(true);});}); break;
     case "copyInvite": copyText(inviteText(d.t)); break;
-    case "copyAll": copyText(D.teams.map(t=>inviteText(t.id)).join("\n\n— — —\n\n")+`\n\n📺 Presenter screen: ${baseLink()}?view=presenter`); break;
-    case "copyLink": copyText(d.l==="presenter"?baseLink()+"?view=presenter":baseLink()); break;
+    case "copyAll": copyText(D.teams.map(t=>inviteText(t.id)).join("\n\n— — —\n\n")+`\n\n👀 Everyone can watch live (no login): ${baseLink()}?view=watch`); break;
+    case "copyLink": copyText(d.l==="presenter"?baseLink()+"?view=presenter":d.l==="watch"?baseLink()+"?view=watch":baseLink()); break;
     case "stp": { const i=$("#"+d.f); const v=Math.max(0,num(i.value)+parseInt(d.d)); i.value=(d.f==="f_slots"||d.f==="f_timer")?String(v):v.toLocaleString("en-IN"); break; }
     case "saveCfg": adm("set_config",{title:$("#f_title").value.trim(),purse:num($("#f_purse").value),base:num($("#f_base").value),inc:Math.max(1,num($("#f_inc").value)),
         slots:Math.max(1,num($("#f_slots").value)),match_thr:num($("#f_match").value),timer_sec:Math.max(5,num($("#f_timer").value))}); break;
@@ -816,7 +951,7 @@ document.addEventListener("keydown",e=>{
   if(s&&!IS_PRES){
     try{ const {data}=await sb.rpc("auc_login",{p_role:s.role==="admin"?"admin":s.team,p_code:s.code}); if(data)ME=s; else saveSession(null);}catch(e){ME=s;}
   }
-  await fetchAll(); render(true); subscribe();
+  await fetchAll(); render(true); subscribe(); presenceSetup();
 })();
 </script>
 </body>
